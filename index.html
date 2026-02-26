@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Google Maps Theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --surface2: #1e2430;
+    --border: #2a3040;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6b;
+    --text: #e8ecf4;
+    --text-muted: #6b7a96;
+    --map-water: #1a2535;
+    --map-land: #1e2a1e;
+    --map-road: #2a3545;
+    --map-road-main: #3d4f3d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    background: rgba(13, 15, 20, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .logo span { color: var(--text-muted); }
+
+  .search-bar {
+    flex: 1;
+    max-width: 520px;
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    gap: 10px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+  }
+
+  .search-bar input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  .search-bar input::placeholder { color: var(--text-muted); }
+
+  .search-icon { color: var(--text-muted); font-size: 1rem; }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    transition: all .2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+  .btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    height: 100vh;
+    padding-top: 57px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* THEME CARDS */
+  .section-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .theme-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+  }
+
+  .theme-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .theme-card.selected { border-color: var(--accent); }
+  .theme-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 6px; right: 8px;
+    background: var(--accent);
+    color: #000;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .theme-preview {
+    height: 70px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Theme previews */
+  .theme-preview.night {
+    background: #0d1117;
+  }
+  .theme-preview.night::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(45deg, #1a2535 30%, transparent 30%) 0 0 / 20px 20px,
+      linear-gradient(-45deg, #1e2430 30%, transparent 30%) 10px 10px / 20px 20px;
+  }
+  .theme-preview.retro {
+    background: #2d1b00;
+  }
+  .theme-preview.retro::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(45deg, #3d2800 25%, transparent 25%) 0 0 / 16px 16px,
+      linear-gradient(-45deg, #4a3000 25%, transparent 25%) 8px 8px / 16px 16px;
+  }
+  .theme-preview.neon {
+    background: #050510;
+  }
+  .theme-preview.neon::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #0a0a2e 0%, #1a0030 50%, #001a30 100%);
+    box-shadow: inset 0 0 40px rgba(0,229,255,0.15);
+  }
+  .theme-preview.grayscale {
+    background: #1a1a1a;
+  }
+  .theme-preview.grayscale::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(45deg, #222 25%, transparent 25%) 0 0 / 14px 14px,
+      linear-gradient(-45deg, #282828 25%, transparent 25%) 7px 7px / 14px 14px;
+  }
+  .theme-preview.aurora {
+    background: #021020;
+  }
+  .theme-preview.aurora::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #001a1a 0%, #022a1a 40%, #001030 100%);
+  }
+  .theme-preview.desert {
+    background: #1a1200;
+  }
+  .theme-preview.desert::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #2a1800 0%, #1a1200 60%, #2d2000 100%);
+  }
+
+  .theme-preview-road {
+    position: absolute;
+    background: currentColor;
+    border-radius: 2px;
+  }
+
+  .theme-label {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  /* COLOR CONTROLS */
+  .controls { margin-bottom: 24px; }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .control-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .color-swatch {
+    display: flex;
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all .15s;
+  }
+
+  .swatch:hover, .swatch.active { border-color: #fff; transform: scale(1.2); }
+
+  /* Sliders */
+  .slider-row { margin-bottom: 14px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .slider-header span:first-child { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+  .slider-val { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent); }
+
+  input[type="range"] {
+    width: 100%;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    transition: transform .15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  /* JSON Preview */
+  .json-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre;
+  }
+
+  .json-key { color: var(--accent); }
+  .json-str { color: var(--accent3); }
+  .json-num { color: var(--accent2); }
+
+  /* MAP AREA */
+  .map-area {
+    position: relative;
+    overflow: hidden;
+    background: var(--map-water);
+  }
+
+  /* SVG Map Canvas */
+  #map-canvas {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Map controls */
+  .map-controls {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .map-btn {
+    width: 36px; height: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+
+  .map-btn:hover { background: var(--surface2); color: var(--accent); border-color: var(--accent); }
+
+  /* Compass */
+  .compass {
+    position: absolute;
+    right: 20px;
+    bottom: 60px;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .compass-inner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .compass-n {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Map info bar */
+  .map-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: rgba(13,15,20,0.8);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  /* Pin */
+  .map-pin {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    cursor: pointer;
+    transition: transform .2s;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+  }
+
+  .map-pin:hover { transform: translate(-50%, -115%); }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translate(-50%, calc(-100% - 60px));
+  }
+
+  .tooltip strong { display: block; font-weight: 700; margin-bottom: 2px; }
+  .tooltip span { color: var(--text-muted); font-size: 0.7rem; }
+
+  /* Scale bar */
+  .scale-bar {
+    position: absolute;
+    bottom: 40px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .scale-line {
+    width: 80px;
+    height: 4px;
+    border: 1px solid var(--text-muted);
+    border-top: none;
+    position: relative;
+  }
+
+  .scale-line::before, .scale-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 6px;
+    background: var(--text-muted);
+    transform: translateY(-100%);
+  }
+
+  .scale-line::before { left: 0; }
+  .scale-line::after { right: 0; }
+
+  .scale-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+  }
+
+  /* Export section */
+  .export-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), #00b4cc);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all .2s;
+    margin-bottom: 10px;
+  }
+
+  .export-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,255,0.3); }
+
+  .copy-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .copy-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+
+  /* Animations */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s infinite;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Tab content */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MAP<span>/</span>THEME</div>
+  <div class="search-bar">
+    <span class="search-icon">⌕</span>
+    <input type="text" placeholder="Search location..." id="searchInput">
+  </div>
+  <div class="header-actions">
+    <button class="btn active" id="btnDark">Dark</button>
+    <button class="btn" id="btnSat">Satellite</button>
+    <button class="btn" id="btnTerrain">Terrain</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="tab active" data-tab="themes">Themes</div>
+      <div class="tab" data-tab="style">Style</div>
+      <div class="tab" data-tab="export">Export</div>
+    </div>
+    <div class="sidebar-content">
+
+      <!-- THEMES PANEL -->
+      <div class="tab-panel active" id="tab-themes">
+        <div class="section-title">Preset Themes</div>
+        <div class="theme-grid">
+          <div class="theme-card selected" data-theme="night" onclick="applyTheme('night', this)">
+            <div class="theme-preview night"></div>
+            <div class="theme-label">Night Mode</div>
+          </div>
+          <div class="theme-card" data-theme="retro" onclick="applyTheme('retro', this)">
+            <div class="theme-preview retro"></div>
+            <div class="theme-label">Retro</div>
+          </div>
+          <div class="theme-card" data-theme="neon" onclick="applyTheme('neon', this)">
+            <div class="theme-preview neon"></div>
+            <div class="theme-label">Neon City</div>
+          </div>
+          <div class="theme-card" data-theme="grayscale" onclick="applyTheme('grayscale', this)">
+            <div class="theme-preview grayscale"></div>
+            <div class="theme-label">Grayscale</div>
+          </div>
+          <div class="theme-card" data-theme="aurora" onclick="applyTheme('aurora', this)">
+            <div class="theme-preview aurora"></div>
+            <div class="theme-label">Aurora</div>
+          </div>
+          <div class="theme-card" data-theme="desert" onclick="applyTheme('desert', this)">
+            <div class="theme-preview desert"></div>
+            <div class="theme-label">Desert</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STYLE PANEL -->
+      <div class="tab-panel" id="tab-style">
+        <div class="section-title">Water Color</div>
+        <div class="controls">
+          <div class="control-row">
+            <span class="control-label">Hue</span>
+            <div class="color-swatch">
+              <div class="swatch active" style="background:#1a2535" onclick="setWater('#1a2535', this)"></div>
+              <div class="swatch" style="background:#0d2035" onclick="setWater('#0d2035', this)"></div>
+              <div class="swatch" style="background:#1a1535" onclick="setWater('#1a1535', this)"></div>
+              <div class="swatch" style="background:#0d2020" onclick="setWater('#0d2020', this)"></div>
+              <div class="swatch" style="background:#201520" onclick="setWater('#201520', this)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Land Color</div>
+        <div class="controls">
+          <div class="control-row">
+            <span class="control-label">Hue</span>
+            <div class="color-swatch">
+              <div class="swatch active" style="background:#1e2a1e" onclick="setLand('#1e2a1e', this)"></div>
+              <div class="swatch" style="background:#1e1e2a" onclick="setLand('#1e1e2a', this)"></div>
+              <div class="swatch" style="background:#2a1e1e" onclick="setLand('#2a1e1e', this)"></div>
+              <div class="swatch" style="background:#1e2a2a" onclick="setLand('#1e2a2a', this)"></div>
+              <div class="swatch" style="background:#1a1a1a" onclick="setLand('#1a1a1a', this)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Roads</div>
+        <div class="controls">
+          <div class="control-row">
+            <span class="control-label">Color</span>
+            <div class="color-swatch">
+              <div class="swatch active" style="background:#3d5050" onclick="setRoad('#3d5050', this)"></div>
+              <div class="swatch" style="background:#4a4040" onclick="setRoad('#4a4040', this)"></div>
+              <div class="swatch" style="background:#40404a" onclick="setRoad('#40404a', this)"></div>
+              <div class="swatch" style="background:#4a4530" onclick="setRoad('#4a4530', this)"></div>
+              <div class="swatch" style="background:#505050" onclick="setRoad('#505050', this)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Adjustments</div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Saturation</span>
+            <span class="slider-val" id="satVal">60%</span>
+          </div>
+          <input type="range" min="0" max="100" value="60" id="satSlider" oninput="updateSat(this.value)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Brightness</span>
+            <span class="slider-val" id="briVal">80%</span>
+          </div>
+          <input type="range" min="20" max="150" value="80" id="briSlider" oninput="updateBri(this.value)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Contrast</span>
+            <span class="slider-val" id="conVal">100%</span>
+          </div>
+          <input type="range" min="50" max="200" value="100" id="conSlider" oninput="updateCon(this.value)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Road Opacity</span>
+            <span class="slider-val" id="roadOpVal">1.0</span>
+          </div>
+          <input type="range" min="0" max="100" value="100" id="roadOpSlider" oninput="updateRoadOp(this.value)">
+        </div>
+      </div>
+
+      <!-- EXPORT PANEL -->
+      <div class="tab-panel" id="tab-export">
+        <div class="section-title">Google Maps JSON</div>
+        <div class="json-preview" id="jsonPreview"></div>
+        <br>
+        <button class="export-btn" onclick="downloadJson()">↓ Download JSON</button>
+        <button class="copy-btn" onclick="copyJson()">Copy to Clipboard</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-area" id="mapArea">
+    <svg id="map-canvas" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid slice">
+      <!-- Water background -->
+      <rect id="water" width="100%" height="100%" fill="#1a2535"/>
+
+      <!-- Land masses -->
+      <g id="land-group">
+        <polygon id="land-main" points="0,700 0,300 80,250 150,260 200,220 280,230 350,180 420,200 500,160 580,190 640,170 700,200 760,180 820,200 900,170 900,700" fill="#1e2a1e"/>
+        <polygon id="land-island1" points="100,80 160,60 200,90 180,130 120,140 80,110" fill="#1e2a1e"/>
+        <polygon id="land-island2" points="650,50 720,30 760,70 750,110 680,120 640,80" fill="#1e2a1e"/>
+        <ellipse id="land-island3" cx="800" cy="100" rx="60" ry="40" fill="#1e2a1e"/>
+      </g>
+
+      <!-- Grid lines (lat/long) -->
+      <g id="grid" stroke="#ffffff08" stroke-width="0.5">
+        <line x1="0" y1="140" x2="900" y2="140"/>
+        <line x1="0" y1="280" x2="900" y2="280"/>
+        <line x1="0" y1="420" x2="900" y2="420"/>
+        <line x1="0" y1="560" x2="900" y2="560"/>
+        <line x1="180" y1="0" x2="180" y2="700"/>
+        <line x1="360" y1="0" x2="360" y2="700"/>
+        <line x1="540" y1="0" x2="540" y2="700"/>
+        <line x1="720" y1="0" x2="720" y2="700"/>
+      </g>
+
+      <!-- Parks -->
+      <g id="parks">
+        <rect x="220" y="330" width="60" height="40" rx="4" fill="#234023" opacity="0.8"/>
+        <rect x="450" y="400" width="80" height="50" rx="4" fill="#234023" opacity="0.8"/>
+        <rect x="320" y="480" width="50" height="35" rx="4" fill="#234023" opacity="0.8"/>
+      </g>
+
+      <!-- Buildings/blocks -->
+      <g id="buildings">
+        <rect x="170" y="300" width="12" height="16" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="185" y="295" width="8" height="21" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="196" y="305" width="14" height="11" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="213" y="302" width="10" height="14" rx="1" fill="#253035" opacity="0.9"/>
+
+        <rect x="380" y="320" width="15" height="20" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="398" y="315" width="10" height="25" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="411" y="322" width="12" height="18" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="426" y="318" width="8" height="22" rx="1" fill="#253035" opacity="0.9"/>
+
+        <rect x="560" y="350" width="16" height="22" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="579" y="345" width="11" height="27" rx="1" fill="#253035" opacity="0.9"/>
+        <rect x="593" y="353" width="13" height="19" rx="1" fill="#253035" opacity="0.9"/>
+      </g>
+
+      <!-- Roads - secondary -->
+      <g id="roads-secondary" stroke="#2a3545" stroke-width="1.5" fill="none" opacity="1">
+        <path d="M0,400 Q150,380 300,360 Q450,340 600,370 Q750,400 900,380"/>
+        <path d="M0,480 Q200,460 400,440 Q600,420 900,450"/>
+        <path d="M150,200 Q160,320 170,440 Q180,540 160,700"/>
+        <path d="M350,180 Q360,300 370,420 Q380,540 360,700"/>
+        <path d="M550,190 Q560,310 570,430 Q580,550 560,700"/>
+        <path d="M750,200 Q760,320 770,440 Q780,560 760,700"/>
+      </g>
+
+      <!-- Roads - main -->
+      <g id="roads-main" stroke="#3d4f3d" stroke-width="3" fill="none" opacity="1">
+        <path d="M0,350 Q225,310 450,330 Q675,350 900,320"/>
+        <path d="M0,550 Q225,520 450,540 Q675,560 900,530"/>
+        <path d="M250,0 Q260,175 255,350 Q250,525 245,700"/>
+        <path d="M650,0 Q660,175 655,350 Q650,525 645,700"/>
+      </g>
+
+      <!-- Road labels -->
+      <g id="road-labels" fill="#8a9aaa" font-size="8" font-family="Space Mono" text-anchor="middle">
+        <text x="450" y="325" transform="rotate(-2, 450, 325)">MAIN BOULEVARD</text>
+        <text x="450" y="538" transform="rotate(1, 450, 538)">CENTRAL AVENUE</text>
+        <text x="248" y="420" transform="rotate(90, 248, 420)">NORTH ST</text>
+        <text x="648" y="380" transform="rotate(90, 648, 380)">EAST DR</text>
+      </g>
+
+      <!-- Waterway -->
+      <path id="river" d="M900,250 Q800,260 720,290 Q640,320 580,310 Q520,300 460,320 Q400,340 340,325 Q280,310 0,330" stroke="#1a2535" stroke-width="12" fill="none" opacity="0.8"/>
+
+      <!-- Pins -->
+      <g id="pin-1" class="map-pin" transform="translate(450, 380)">
+        <ellipse cx="0" cy="6" rx="8" ry="3" fill="rgba(0,0,0,0.3)"/>
+        <path d="M0,-24 C-10,-24 -16,-16 -16,-8 C-16,4 0,20 0,20 C0,20 16,4 16,-8 C16,-16 10,-24 0,-24Z" fill="#00e5ff"/>
+        <circle cx="0" cy="-8" r="5" fill="#000" opacity="0.5"/>
+      </g>
+
+      <g id="pin-2" class="map-pin" transform="translate(250, 360)">
+        <ellipse cx="0" cy="6" rx="8" ry="3" fill="rgba(0,0,0,0.3)"/>
+        <path d="M0,-24 C-10,-24 -16,-16 -16,-8 C-16,4 0,20 0,20 C0,20 16,4 16,-8 C16,-16 10,-24 0,-24Z" fill="#ff6b35"/>
+        <circle cx="0" cy="-8" r="5" fill="#000" opacity="0.5"/>
+      </g>
+
+      <g id="pin-3" class="map-pin" transform="translate(680, 420)">
+        <ellipse cx="0" cy="6" rx="8" ry="3" fill="rgba(0,0,0,0.3)"/>
+        <path d="M0,-24 C-10,-24 -16,-16 -16,-8 C-16,4 0,20 0,20 C0,20 16,4 16,-8 C16,-16 10,-24 0,-24Z" fill="#7fff6b"/>
+        <circle cx="0" cy="-8" r="5" fill="#000" opacity="0.5"/>
+      </g>
+
+      <!-- Place labels -->
+      <g fill="#8a9aaa" font-size="9" font-family="Syne" font-weight="600">
+        <text x="450" y="310" text-anchor="middle" fill="#aab4c4">CENTRAL DISTRICT</text>
+        <text x="250" y="340" text-anchor="middle" fill="#9aa4b4">WEST QUARTER</text>
+        <text x="680" y="400" text-anchor="middle" fill="#9aa4b4">EAST END</text>
+        <text x="120" y="200" text-anchor="middle" fill="#6a7a8a" font-size="8">NORTH BAY</text>
+        <text x="700" y="140" text-anchor="middle" fill="#6a7a8a" font-size="8">HARBOR ISLE</text>
+      </g>
+    </svg>
+
+    <!-- Map UI overlays -->
+    <div class="map-controls">
+      <button class="map-btn" title="Zoom In" onclick="zoomIn()">+</button>
+      <button class="map-btn" title="Zoom Out" onclick="zoomOut()">−</button>
+    </div>
+
+    <div class="compass">
+      <div class="compass-inner">
+        <span class="compass-n">N</span>
+      </div>
+    </div>
+
+    <div class="scale-bar">
+      <div class="scale-line"></div>
+      <div class="scale-text">5 km</div>
+    </div>
+
+    <div class="map-info">
+      <span><span class="live-dot"></span>Live Preview</span>
+      <span id="coords">37.7749° N, 122.4194° W</span>
+      <span id="zoomLevel">Zoom: 12</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────────────────
+  let currentTheme = 'night';
+  let zoom = 12;
+  let mapFilter = '';
+
+  const themes = {
+    night: {
+      water: '#1a2535', land: '#1e2a1e', road: '#2a3545', roadMain: '#3d4f3d',
+      buildings: '#253035', park: '#234023', text: '#8a9aaa', accent: '#00e5ff',
+      label: 'Night Mode'
+    },
+    retro: {
+      water: '#2d1b00', land: '#3d2800', road: '#4a3800', roadMain: '#5a4800',
+      buildings: '#4a3520', park: '#3a4020', text: '#c8a060', accent: '#ff9040',
+      label: 'Retro'
+    },
+    neon: {
+      water: '#050510', land: '#0a0a20', road: '#151530', roadMain: '#20203a',
+      buildings: '#10102a', park: '#0a1a0a', text: '#4040cc', accent: '#00e5ff',
+      label: 'Neon City'
+    },
+    grayscale: {
+      water: '#1a1a1a', land: '#222222', road: '#2a2a2a', roadMain: '#333333',
+      buildings: '#282828', park: '#1e2a1e', text: '#555555', accent: '#888888',
+      label: 'Grayscale'
+    },
+    aurora: {
+      water: '#021020', land: '#042820', road: '#073035', roadMain: '#0a4035',
+      buildings: '#062825', park: '#043020', text: '#409aaa', accent: '#00ffaa',
+      label: 'Aurora'
+    },
+    desert: {
+      water: '#1a1200', land: '#2a2000', road: '#3a2c00', roadMain: '#4a3800',
+      buildings: '#352800', park: '#2a3000', text: '#aa8840', accent: '#ffa030',
+      label: 'Desert'
+    }
+  };
+
+  // ─── Apply theme ─────────────────────────────────────────────────────────────
+  function applyTheme(name, card) {
+    currentTheme = name;
+    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+    if (card) card.classList.add('selected');
+
+    const t = themes[name];
+    document.getElementById('water').setAttribute('fill', t.water);
+    document.getElementById('river').setAttribute('stroke', t.water);
+    document.querySelectorAll('#land-group polygon, #land-group ellipse').forEach(el => el.setAttribute('fill', t.land));
+    document.querySelectorAll('#parks rect').forEach(el => el.setAttribute('fill', t.park));
+    document.querySelectorAll('#buildings rect').forEach(el => el.setAttribute('fill', t.buildings));
+    document.querySelectorAll('#roads-secondary path').forEach(el => el.setAttribute('stroke', t.road));
+    document.querySelectorAll('#roads-main path').forEach(el => el.setAttribute('stroke', t.roadMain));
+    document.querySelectorAll('[id^="road-labels"] text, #map-canvas [fill="#8a9aaa"]').forEach(el => el.setAttribute('fill', t.text));
+
+    // Update accent (pins)
+    document.querySelector('#pin-1 path').setAttribute('fill', t.accent);
+
+    updateJsonPreview();
+  }
+
+  // ─── Color controls ───────────────────────────────────────────────────────────
+  function setWater(color, el) {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('water').setAttribute('fill', color);
+    document.getElementById('river').setAttribute('stroke', color);
+    updateJsonPreview();
+  }
+
+  function setLand(color, el) {
+    // Only target swatch row 2
+    el.parentElement.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#land-group polygon, #land-group ellipse').forEach(e => e.setAttribute('fill', color));
+    updateJsonPreview();
+  }
+
+  function setRoad(color, el) {
+    el.parentElement.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#roads-secondary path').forEach(e => e.setAttribute('stroke', color));
+    updateJsonPreview();
+  }
+
+  // ─── Sliders ─────────────────────────────────────────────────────────────────
+  function updateMapFilter() {
+    const sat = document.getElementById('satSlider').value;
+    const bri = document.getElementById('briSlider').value;
+    const con = document.getElementById('conSlider').value;
+    document.getElementById('map-canvas').style.filter =
+      `saturate(${sat}%) brightness(${bri}%) contrast(${con}%)`;
+  }
+
+  function updateSat(v) {
+    document.getElementById('satVal').textContent = v + '%';
+    updateMapFilter();
+  }
+
+  function updateBri(v) {
+    document.getElementById('briVal').textContent = v + '%';
+    updateMapFilter();
+  }
+
+  function updateCon(v) {
+    document.getElementById('conVal').textContent = v + '%';
+    updateMapFilter();
+  }
+
+  function updateRoadOp(v) {
+    const op = (v / 100).toFixed(1);
+    document.getElementById('roadOpVal').textContent = op;
+    document.getElementById('roads-main').setAttribute('opacity', op);
+    document.getElementById('roads-secondary').setAttribute('opacity', op);
+  }
+
+  // ─── Zoom ─────────────────────────────────────────────────────────────────────
+  function zoomIn() {
+    zoom = Math.min(zoom + 1, 20);
+    document.getElementById('zoomLevel').textContent = 'Zoom: ' + zoom;
+    document.getElementById('map-canvas').style.transform = `scale(${1 + (zoom - 12) * 0.05})`;
+    document.getElementById('map-canvas').style.transformOrigin = 'center';
+  }
+
+  function zoomOut() {
+    zoom = Math.max(zoom - 1, 5);
+    document.getElementById('zoomLevel').textContent = 'Zoom: ' + zoom;
+    document.getElementById('map-canvas').style.transform = `scale(${1 + (zoom - 12) * 0.05})`;
+    document.getElementById('map-canvas').style.transformOrigin = 'center';
+  }
+
+  // ─── Tabs ─────────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + target).classList.add('active');
+      if (target === 'export') updateJsonPreview();
+    });
+  });
+
+  // ─── Map mode buttons ─────────────────────────────────────────────────────────
+  document.getElementById('btnDark').addEventListener('click', function() {
+    setMapMode(this, 'dark');
+    document.getElementById('map-canvas').style.filter = '';
+    document.getElementById('satSlider').value = 60;
+    updateSat(60);
+    document.getElementById('briSlider').value = 80;
+    updateBri(80);
+  });
+
+  document.getElementById('btnSat').addEventListener('click', function() {
+    setMapMode(this, 'satellite');
+    document.getElementById('satSlider').value = 40;
+    document.getElementById('briSlider').value = 70;
+    document.getElementById('conSlider').value = 120;
+    updateSat(40); updateBri(70); updateCon(120);
+  });
+
+  document.getElementById('btnTerrain').addEventListener('click', function() {
+    setMapMode(this, 'terrain');
+    document.getElementById('satSlider').value = 80;
+    document.getElementById('briSlider').value = 90;
+    document.getElementById('conSlider').value = 110;
+    updateSat(80); updateBri(90); updateCon(110);
+  });
+
+  function setMapMode(btn, mode) {
+    document.querySelectorAll('.header-actions .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ─── JSON Preview ─────────────────────────────────────────────────────────────
+  function generateJson() {
+    const t = themes[currentTheme];
+    return {
+      version: '1',
+      name: t.label,
+      featureType: [
+        { elementType: "geometry", stylers: [{ color: t.land }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: t.water }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: t.road }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: t.roadMain }] },
+        { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: t.park }] },
+        { featureType: "all", elementType: "labels.text.fill", stylers: [{ color: t.text }] }
+      ]
+    };
+  }
+
+  function syntaxHighlight(json) {
+    return JSON.stringify(json, null, 2)
+      .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+      .replace(/: "([^"]+)"/g, ': <span class="json-str">"$1"</span>')
+      .replace(/: (\d+)/g, ': <span class="json-num">$1</span>');
+  }
+
+  function updateJsonPreview() {
+    document.getElementById('jsonPreview').innerHTML = syntaxHighlight(generateJson());
+  }
+
+  function downloadJson() {
+    const data = JSON.stringify(generateJson(), null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `maps-theme-${currentTheme}.json`;
+    a.click();
+    showToast('Theme downloaded!');
+  }
+
+  function copyJson() {
+    navigator.clipboard.writeText(JSON.stringify(generateJson(), null, 2))
+      .then(() => showToast('Copied to clipboard!'));
+  }
+
+  // ─── Toast ────────────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────────
+  updateJsonPreview();
+</script>
+</body>
+</html>
